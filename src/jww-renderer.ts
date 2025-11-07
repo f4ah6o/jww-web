@@ -10,6 +10,9 @@ import type {
   JwwCircle,
   JwwArc,
   JwwText,
+  JwwEllipse,
+  JwwDimension,
+  JwwPolyline,
   JwwRendererOptions,
   ViewportState,
   Bounds
@@ -163,6 +166,15 @@ export class JwwRenderer {
       case 'text':
         this.renderText(entity);
         break;
+      case 'ellipse':
+        this.renderEllipse(entity);
+        break;
+      case 'dimension':
+        this.renderDimension(entity);
+        break;
+      case 'polyline':
+        this.renderPolyline(entity);
+        break;
       // その他のタイプ
       default:
         console.warn(`Rendering not implemented for entity type: ${entity.type}`);
@@ -270,6 +282,109 @@ export class JwwRenderer {
   }
 
   /**
+   * 楕円を描画
+   */
+  private renderEllipse(ellipse: JwwEllipse) {
+    this.ctx.save();
+
+    // 楕円の中心に移動
+    this.ctx.translate(ellipse.centerX, ellipse.centerY);
+
+    // 回転を適用
+    if (ellipse.rotation !== 0) {
+      this.ctx.rotate(ellipse.rotation);
+    }
+
+    // Canvas API の ellipse メソッドを使用
+    this.ctx.beginPath();
+    this.ctx.ellipse(0, 0, ellipse.radiusX, ellipse.radiusY, 0, 0, Math.PI * 2);
+    this.ctx.stroke();
+
+    this.ctx.restore();
+  }
+
+  /**
+   * 寸法線を描画
+   */
+  private renderDimension(dimension: JwwDimension) {
+    this.ctx.save();
+
+    // 寸法線本体を描画
+    this.ctx.beginPath();
+    this.ctx.moveTo(dimension.startX, dimension.startY);
+    this.ctx.lineTo(dimension.endX, dimension.endY);
+    this.ctx.stroke();
+
+    // 矢印のサイズ（ズームレベルに応じて調整）
+    const arrowSize = 2.0 / this.viewport.scale;
+
+    // 始点の矢印
+    this.drawArrowHead(dimension.startX, dimension.startY, dimension.endX, dimension.endY, arrowSize);
+
+    // 終点の矢印
+    this.drawArrowHead(dimension.endX, dimension.endY, dimension.startX, dimension.startY, arrowSize);
+
+    // 寸法テキストを描画
+    this.ctx.save();
+    this.ctx.scale(1, -1); // Y軸反転を元に戻す
+    const fontSize = 3.0 / this.viewport.scale;
+    this.ctx.font = `${fontSize}px sans-serif`;
+    this.ctx.textAlign = 'center';
+    this.ctx.textBaseline = 'middle';
+    this.ctx.fillText(dimension.text, dimension.textX, -dimension.textY);
+    this.ctx.restore();
+
+    this.ctx.restore();
+  }
+
+  /**
+   * 矢印の先端を描画するヘルパーメソッド
+   */
+  private drawArrowHead(fromX: number, fromY: number, toX: number, toY: number, size: number) {
+    const angle = Math.atan2(toY - fromY, toX - fromX);
+    const arrowAngle = Math.PI / 6; // 30度
+
+    this.ctx.beginPath();
+    this.ctx.moveTo(fromX, fromY);
+    this.ctx.lineTo(
+      fromX - size * Math.cos(angle - arrowAngle),
+      fromY - size * Math.sin(angle - arrowAngle)
+    );
+    this.ctx.moveTo(fromX, fromY);
+    this.ctx.lineTo(
+      fromX - size * Math.cos(angle + arrowAngle),
+      fromY - size * Math.sin(angle + arrowAngle)
+    );
+    this.ctx.stroke();
+  }
+
+  /**
+   * ポリラインを描画
+   */
+  private renderPolyline(polyline: JwwPolyline) {
+    if (polyline.points.length < 2) {
+      return;
+    }
+
+    this.ctx.beginPath();
+
+    // 最初の点に移動
+    this.ctx.moveTo(polyline.points[0].x, polyline.points[0].y);
+
+    // 残りの点を結ぶ
+    for (let i = 1; i < polyline.points.length; i++) {
+      this.ctx.lineTo(polyline.points[i].x, polyline.points[i].y);
+    }
+
+    // 閉じたポリラインの場合、最初の点に戻る
+    if (polyline.closed) {
+      this.ctx.closePath();
+    }
+
+    this.ctx.stroke();
+  }
+
+  /**
    * ドキュメント全体の境界を計算
    */
   calculateBounds(): Bounds | null {
@@ -352,6 +467,48 @@ export class JwwRenderer {
           maxY: entity.y + entity.height,
           width: estimatedWidth,
           height: entity.height
+        };
+
+      case 'ellipse':
+        // 回転した楕円の境界ボックスを計算
+        // 簡易実装: 外接矩形として扱う
+        const maxRadius = Math.max(entity.radiusX, entity.radiusY);
+        return {
+          minX: entity.centerX - maxRadius,
+          minY: entity.centerY - maxRadius,
+          maxX: entity.centerX + maxRadius,
+          maxY: entity.centerY + maxRadius,
+          width: maxRadius * 2,
+          height: maxRadius * 2
+        };
+
+      case 'dimension':
+        return {
+          minX: Math.min(entity.startX, entity.endX, entity.textX),
+          minY: Math.min(entity.startY, entity.endY, entity.textY),
+          maxX: Math.max(entity.startX, entity.endX, entity.textX),
+          maxY: Math.max(entity.startY, entity.endY, entity.textY),
+          width: Math.abs(Math.max(entity.startX, entity.endX, entity.textX) - Math.min(entity.startX, entity.endX, entity.textX)),
+          height: Math.abs(Math.max(entity.startY, entity.endY, entity.textY) - Math.min(entity.startY, entity.endY, entity.textY))
+        };
+
+      case 'polyline':
+        if (entity.points.length === 0) {
+          return null;
+        }
+        const xs = entity.points.map(p => p.x);
+        const ys = entity.points.map(p => p.y);
+        const minXPoly = Math.min(...xs);
+        const minYPoly = Math.min(...ys);
+        const maxXPoly = Math.max(...xs);
+        const maxYPoly = Math.max(...ys);
+        return {
+          minX: minXPoly,
+          minY: minYPoly,
+          maxX: maxXPoly,
+          maxY: maxYPoly,
+          width: maxXPoly - minXPoly,
+          height: maxYPoly - minYPoly
         };
 
       default:

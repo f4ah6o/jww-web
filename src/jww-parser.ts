@@ -13,6 +13,9 @@ import type {
   JwwCircle,
   JwwArc,
   JwwText,
+  JwwEllipse,
+  JwwDimension,
+  JwwPolyline,
   JwwParserOptions
 } from './types';
 
@@ -228,10 +231,18 @@ export class JwwParser {
       case 0x04: // テキスト (Text)
         return this.parseText(reader, baseProps);
 
+      case 0x05: // 楕円 (Ellipse)
+        return this.parseEllipse(reader, baseProps);
+
+      case 0x06: // 寸法線 (Dimension)
+        return this.parseDimension(reader, baseProps);
+
+      case 0x07: // ポリライン (Polyline)
+        return this.parsePolyline(reader, baseProps);
+
       // その他のエンティティタイプ
-      // case 0x05: // Ellipse
-      // case 0x06: // Dimension
-      // case 0x07: // Point
+      // case 0x08: // Point
+      // case 0x09: // Solid
       // ...
 
       default:
@@ -310,19 +321,19 @@ export class JwwParser {
   private parseText(reader: JwwBinaryReader, baseProps: any): JwwText {
     const x = JwwCoordinateConverter.toMillimeters(reader.readInt32());
     const y = JwwCoordinateConverter.toMillimeters(reader.readInt32());
-    
+
     const height = JwwCoordinateConverter.toMillimeters(reader.readInt16());
     const width = JwwCoordinateConverter.toMillimeters(reader.readInt16());
     const angle = JwwCoordinateConverter.toRadians(reader.readInt16());
-    
+
     // アライメントフラグ
     const alignFlags = reader.readByte();
     const horizontalAlign = ['left', 'center', 'right'][alignFlags & 0x03] as 'left' | 'center' | 'right';
     const verticalAlign = ['bottom', 'middle', 'top'][(alignFlags >> 2) & 0x03] as 'bottom' | 'middle' | 'top';
-    
+
     // フォント名
     const font = reader.readString(32).trim();
-    
+
     // テキスト内容 (最大256文字)
     const textLength = reader.readUInt16();
     const text = reader.readString(textLength);
@@ -339,6 +350,89 @@ export class JwwParser {
       font: font || 'MS Gothic',
       horizontalAlign,
       verticalAlign
+    };
+  }
+
+  /**
+   * 楕円エンティティを解析
+   */
+  private parseEllipse(reader: JwwBinaryReader, baseProps: any): JwwEllipse {
+    const centerX = JwwCoordinateConverter.toMillimeters(reader.readInt32());
+    const centerY = JwwCoordinateConverter.toMillimeters(reader.readInt32());
+    const radiusX = JwwCoordinateConverter.toMillimeters(reader.readInt32());
+    const radiusY = JwwCoordinateConverter.toMillimeters(reader.readInt32());
+    const rotation = JwwCoordinateConverter.toRadians(reader.readInt16());
+
+    return {
+      ...baseProps,
+      type: 'ellipse',
+      centerX,
+      centerY,
+      radiusX,
+      radiusY,
+      rotation
+    };
+  }
+
+  /**
+   * 寸法線エンティティを解析
+   */
+  private parseDimension(reader: JwwBinaryReader, baseProps: any): JwwDimension {
+    const startX = JwwCoordinateConverter.toMillimeters(reader.readInt32());
+    const startY = JwwCoordinateConverter.toMillimeters(reader.readInt32());
+    const endX = JwwCoordinateConverter.toMillimeters(reader.readInt32());
+    const endY = JwwCoordinateConverter.toMillimeters(reader.readInt32());
+    const textX = JwwCoordinateConverter.toMillimeters(reader.readInt32());
+    const textY = JwwCoordinateConverter.toMillimeters(reader.readInt32());
+
+    const value = reader.readInt32() / 1000.0; // 値はミリメートル単位
+
+    // 寸法タイプ
+    const dimType = reader.readByte();
+    const dimensionTypes = ['linear', 'aligned', 'angular', 'radius', 'diameter'] as const;
+    const dimensionType = dimensionTypes[dimType] || 'linear';
+
+    // 寸法テキスト
+    const textLength = reader.readUInt16();
+    const text = textLength > 0 ? reader.readString(textLength) : value.toFixed(2);
+
+    return {
+      ...baseProps,
+      type: 'dimension',
+      startX,
+      startY,
+      endX,
+      endY,
+      textX,
+      textY,
+      value,
+      text,
+      dimensionType
+    };
+  }
+
+  /**
+   * ポリラインエンティティを解析
+   */
+  private parsePolyline(reader: JwwBinaryReader, baseProps: any): JwwPolyline {
+    const pointCount = reader.readUInt16();
+    const flags = reader.readByte();
+    const closed = (flags & 0x01) !== 0;
+
+    reader.skip(1); // 予約
+
+    const points: Array<{ x: number; y: number }> = [];
+    for (let i = 0; i < pointCount; i++) {
+      const x = JwwCoordinateConverter.toMillimeters(reader.readInt32());
+      const y = JwwCoordinateConverter.toMillimeters(reader.readInt32());
+      points.push({ x, y });
+    }
+
+    return {
+      ...baseProps,
+      type: 'polyline',
+      points,
+      closed
     };
   }
 
