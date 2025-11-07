@@ -57,8 +57,9 @@ export class JwwParser {
       if (this.options.strictMode) {
         throw error;
       }
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error('JWW parsing error:', error);
-      throw new Error(`Failed to parse JWW file: ${error.message}`);
+      throw new Error(`Failed to parse JWW file: ${errorMessage}`);
     }
   }
 
@@ -163,7 +164,7 @@ export class JwwParser {
    * エンティティを解析
    * JWWファイルの主要な図形データを読み込む
    */
-  private parseEntities(reader: JwwBinaryReader, header: JwwHeader): JwwEntity[] {
+  private parseEntities(reader: JwwBinaryReader, _header: JwwHeader): JwwEntity[] {
     const entities: JwwEntity[] = [];
 
     while (!reader.isEOF() && reader.remaining() > 4) {
