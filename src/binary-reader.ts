@@ -231,7 +231,7 @@ export class JwwBinaryReader {
       throw new Error('Unexpected end of file');
     }
 
-    const buffer = this.view.buffer.slice(this.offset, this.offset + length);
+    const buffer = this.view.buffer.slice(this.offset, this.offset + length) as ArrayBuffer;
     this.offset += length;
     return new JwwBinaryReader(buffer);
   }
