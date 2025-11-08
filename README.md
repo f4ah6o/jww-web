@@ -17,6 +17,8 @@
 - ✅ **PNG出力**: 表示中の図面をPNG画像として保存可能
 - ✅ **PWA対応**: オフライン動作、ホーム画面に追加可能
 - ✅ **iOS対応**: Capacitorによるネイティブアプリ化
+- ✅ **包括的なテスト**: Vitest統合で33個以上のテストをサポート
+- ✅ **Biome統合**: 最新の高速フォーマッタ・リンター
 
 ## サポート機能
 
@@ -25,19 +27,20 @@
 - ✅ 円 (Circle)
 - ✅ 円弧 (Arc)
 - ✅ テキスト (Text)
-
-### 今後実装予定
-- ⏳ 楕円 (Ellipse)
-- ⏳ 寸法線 (Dimension)
-- ⏳ ポリライン (Polyline)
-- ⏳ ハッチング (Hatch)
-- ⏳ ブロック (Block)
+- ✅ 楕円 (Ellipse)
+- ✅ 寸法線 (Dimension)
+- ✅ ポリライン (Polyline)
+- ✅ 点 (Point)
+- ✅ ソリッド (Solid)
+- ✅ ハッチング (Hatch)
+- ✅ ブロック (Block)
 
 ## 開発環境のセットアップ
 
 ### 必要な環境
 - Node.js 18.x 以上
-- npm 9.x 以上
+- npm 9.x 以上（または pnpm/yarn）
+- iOS開発環境: Xcode（Capacitor iOS開発時）
 
 ### インストール
 
@@ -61,6 +64,23 @@ npm run build
 npm run preview
 ```
 
+### テスト
+
+```bash
+# テストを実行
+npm run test
+
+# ウォッチモードでテストを実行
+npm run test -- --watch
+```
+
+### コード品質
+
+```bash
+# Biomeでコードを整形・検査
+npm run lint
+```
+
 ## 使い方
 
 1. ブラウザでアプリケーションを開く
@@ -80,30 +100,43 @@ npm run preview
 ```
 jww-web/
 ├── src/
-│   ├── types.ts              # JWW型定義
-│   ├── binary-reader.ts      # バイナリファイルリーダー
-│   ├── jww-parser.ts         # JWWパーサー
-│   ├── jww-renderer.ts       # Canvas 2Dレンダラー
-│   ├── viewport-controller.ts # ビューポート制御
+│   ├── types.ts                         # JWW型定義
+│   ├── binary-reader.ts                 # バイナリファイルリーダー
+│   ├── jww-parser.ts                    # JWWパーサー
+│   ├── jww-parser.test.ts               # パーサーテスト (33+)
+│   ├── jww-renderer.ts                  # Canvas 2Dレンダラー
+│   ├── viewport-controller.ts           # ビューポート制御
+│   ├── test-helpers/
+│   │   └── jww-test-data.ts             # テストヘルパー
 │   ├── components/
-│   │   └── JwwViewer.tsx     # メインコンポーネント
-│   ├── App.tsx               # アプリケーション
-│   ├── main.tsx              # エントリーポイント
-│   └── index.css             # グローバルスタイル
-├── index.html                # HTML
-├── package.json              # パッケージ定義
-├── tsconfig.json             # TypeScript設定
-├── vite.config.ts            # Vite設定
-└── README.md                 # このファイル
+│   │   └── JwwViewer.tsx                # メインコンポーネント
+│   ├── App.tsx                          # アプリケーション
+│   ├── main.tsx                         # エントリーポイント（PWA）
+│   └── index.css                        # グローバルスタイル
+├── index.html                           # HTML
+├── public/
+│   ├── manifest.webmanifest             # PWAマニフェスト
+│   └── icons/                           # PWAアイコン
+├── capacitor.config.ts                  # Capacitor設定
+├── package.json                         # パッケージ定義
+├── tsconfig.json                        # TypeScript設定
+├── vite.config.ts                       # Vite + PWA設定
+├── vitest.config.ts                     # Vitest設定
+├── biome.json                           # Biome設定
+└── README.md                            # このファイル
 ```
 
 ## 技術スタック
 
-- **言語**: TypeScript 5.x
-- **フレームワーク**: React 18.x
-- **ビルドツール**: Vite 5.x
+- **言語**: TypeScript 5.5
+- **フレームワーク**: React 18.3
+- **ビルドツール**: Vite 5.4
 - **レンダリング**: Canvas 2D API
 - **文字エンコーディング**: encoding-japanese (Shift-JIS対応)
+- **テスト**: Vitest 2.0 (33+ 総合テスト)
+- **コード品質**: Biome 1.8 (フォーマッタ・リンター)
+- **モバイル**: Capacitor 7.4 (iOS/Android対応)
+- **PWA**: vite-plugin-pwa 1.1 (Service Worker統合)
 
 ## 実装の詳細
 
@@ -142,21 +175,42 @@ npm run build
 
 Service Workerによるオフライン対応とホーム画面へのインストールに対応しています。
 
+#### 主な機能
+- オフライン動作（キャッシング戦略）
+- ホーム画面にインストール可能
+- デスクトップ・モバイル対応
+
+#### コマンド
 ```bash
-# PWAビルド
+# PWAビルド（アイコン生成・Service Worker統合）
 npm run build:pwa
+
+# 開発環境でPWAテスト
+npm run preview
 ```
 
 ### iOSネイティブアプリ
 
 Capacitorを使用してiOSネイティブアプリ化に対応しています。
 
+#### 主な機能
+- Native iOS UI統合
+- デバイスストレージアクセス
+- ステータスバー・セーフエリア対応
+
+#### コマンド
 ```bash
-# iOSアプリのビルド
+# iOSアプリのビルド（ファイル同期 + Xcode起動）
 npm run build:ios
 
 # iOSプロジェクトを開く
 npm run cap:open:ios
+
+# iOSデバイスで実行
+npm run cap:run:ios
+
+# iOS同期のみ
+npm run cap:sync
 ```
 
 詳細は [PWA-IOS.md](./PWA-IOS.md) を参照してください。
