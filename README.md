@@ -15,6 +15,8 @@
 - ✅ **レスポンシブデザイン**: デスクトップ・モバイル対応
 - ✅ **パン・ズーム対応**: マウス・タッチ操作に対応
 - ✅ **PNG出力**: 表示中の図面をPNG画像として保存可能
+- ✅ **PWA対応**: オフライン動作、ホーム画面に追加可能
+- ✅ **iOS対応**: Capacitorによるネイティブアプリ化
 
 ## サポート機能
 
@@ -134,18 +136,30 @@ npm run build
 # dist/ フォルダをデプロイ
 ```
 
-## iOS対応（今後の予定）
+## PWA & iOS対応
 
-Capacitorを使用してiOSアプリ化する予定です。
+### PWA（Progressive Web App）
+
+Service Workerによるオフライン対応とホーム画面へのインストールに対応しています。
 
 ```bash
-# Capacitorのインストール
-npm install @capacitor/core @capacitor/cli @capacitor/ios
-
-# iOSプロジェクトの追加
-npx cap add ios
-npx cap open ios
+# PWAビルド
+npm run build:pwa
 ```
+
+### iOSネイティブアプリ
+
+Capacitorを使用してiOSネイティブアプリ化に対応しています。
+
+```bash
+# iOSアプリのビルド
+npm run build:ios
+
+# iOSプロジェクトを開く
+npm run cap:open:ios
+```
+
+詳細は [PWA-IOS.md](./PWA-IOS.md) を参照してください。
 
 ## ライセンス
 

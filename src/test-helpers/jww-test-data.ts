@@ -414,7 +414,7 @@ export function createDimensionEntity(options: {
   builder.writeInt32((options.endY ?? 0) * 100);
 
   // Text position
-  builder.writeInt32((options.startX ?? 0 + options.endX ?? 100) * 50);
+  builder.writeInt32(((options.startX ?? 0) + (options.endX ?? 100)) * 50);
   builder.writeInt32(((options.startY ?? 0) + 10) * 100);
 
   // Value in 0.001mm units

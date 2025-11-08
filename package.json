@@ -8,20 +8,30 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest",
-    "lint": "biome lint --write src"
+    "lint": "biome lint --write src",
+    "cap:sync": "cap sync",
+    "cap:open:ios": "cap open ios",
+    "cap:run:ios": "cap run ios",
+    "build:pwa": "npm run build && cap sync",
+    "build:ios": "npm run build && cap sync ios && cap open ios"
   },
   "dependencies": {
+    "@capacitor/cli": "^7.4.4",
+    "@capacitor/core": "^7.4.4",
+    "@capacitor/ios": "^7.4.4",
+    "encoding-japanese": "^2.1.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "encoding-japanese": "^2.1.0"
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@biomejs/biome": "^1.8.3",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
     "typescript": "^5.5.3",
     "vite": "^5.4.0",
+    "vite-plugin-pwa": "^1.1.0",
     "vitest": "^2.0.5",
-    "@biomejs/biome": "^1.8.3"
+    "workbox-window": "^7.3.0"
   }
 }
