@@ -22,6 +22,7 @@ import type {
 // JWWファイルのマジックナンバー
 const JWW_SIGNATURE = 'JWW';
 const JWS_SIGNATURE = 'JWS';
+const JWWDATA_SIGNATURE = 'JwwData'; // 新しいフォーマット
 
 export class JwwParser {
   private options: Required<JwwParserOptions>;
@@ -72,8 +73,22 @@ export class JwwParser {
    */
   private parseHeader(reader: JwwBinaryReader): JwwHeader {
     // シグネチャ確認
-    const signature = reader.readString(3);
-    if (signature !== JWW_SIGNATURE && signature !== JWS_SIGNATURE) {
+    // まず3バイト読んで、JWWData形式かチェック
+    const sig3 = reader.readString(3);
+    let signature = sig3;
+
+    if (sig3 === 'Jww') {
+      // JwwData形式の可能性があるので、さらに4バイト読む
+      const sig4 = reader.readString(4);
+      if (sig4 === 'Data') {
+        signature = 'Jww'; // JWW互換として扱う
+        // 残りのヘッダーをスキップ (JwwData. の後のバイト)
+        reader.skip(1); // '.' をスキップ
+      } else {
+        // 期待したシグネチャではない
+        throw new Error(`Invalid file signature: ${sig3}${sig4}`);
+      }
+    } else if (signature !== JWW_SIGNATURE && signature !== JWS_SIGNATURE) {
       throw new Error(`Invalid file signature: ${signature}`);
     }
 
@@ -442,14 +457,27 @@ export class JwwParser {
   static async validate(file: File | ArrayBuffer): Promise<boolean> {
     try {
       const buffer = file instanceof File ? await file.arrayBuffer() : file;
-      if (buffer.byteLength < 256) {
+      if (buffer.byteLength < 8) {
         return false;
       }
 
       const reader = new JwwBinaryReader(buffer);
-      const signature = reader.readString(3);
-      
-      return signature === JWW_SIGNATURE || signature === JWS_SIGNATURE;
+      const sig3 = reader.readString(3);
+
+      // 標準フォーマット (JWW/JWS)
+      if (sig3 === JWW_SIGNATURE || sig3 === JWS_SIGNATURE) {
+        return true;
+      }
+
+      // JwwData形式
+      if (sig3 === 'Jww') {
+        const sig4 = reader.readString(4);
+        if (sig4 === 'Data') {
+          return true;
+        }
+      }
+
+      return false;
     } catch {
       return false;
     }
